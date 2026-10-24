@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diamond Ledger Blockchain Simulator | محاكي بلوكتشين الألماس</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            900: '#070b19',
+                            800: '#0d152d',
+                            700: '#142043',
+                            600: '#1d2d5a'
+                        },
+                        gold: {
+                            400: '#f6d365',
+                            500: '#fda085',
+                            600: '#d4af37',
+                            700: '#aa8625'
+                        },
+                        diamond: {
+                            100: '#e0f7fa',
+                            300: '#80deea',
+                            500: '#00bcd4',
+                            700: '#00838f'
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #070b19;
+            color: #e2e8f0;
+            font-family: 'Cairo', 'Outfit', sans-serif;
+        }
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #ffe066 0%, #d4af37 50%, #f5af19 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .diamond-card {
+            background: rgba(13, 21, 45, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+        .diamond-card:hover {
+            border-color: rgba(212, 175, 55, 0.5);
+            box-shadow: 0 0 20px rgba(0, 188, 212, 0.15);
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-certificate, #printable-certificate * { visibility: visible; }
+            #printable-certificate { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navigation -->
+    <header class="border-b border-gold-600/30 bg-navy-900/90 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <i class="fa-solid font-bold fa-gem text-3xl text-diamond-300 animate-pulse"></i>
+                <div>
+                    <h1 class="text-xl font-bold gold-gradient-text tracking-wide" id="txt-app-title">محاكي بلوكتشين الألماس</h1>
+                    <p class="text-xs text-gray-400" id="txt-app-subtitle">نظام إثبات الملكية وتتبع المعاملات الرقمية</p>
+                </div>
+            </div>
+
+            <!-- Global Action Bar -->
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <!-- Domain Setting Button -->
+                <button onclick="openDomainModal()" class="px-3 py-1.5 text-xs rounded-lg border border-gold-600/40 text-gold-400 hover:bg-gold-600/10 transition">
+                    <i class="fa-solid fa-link ml-1"></i> <span id="txt-btn-domain">رابط الموقع للنشر</span>
+                </button>
+                <!-- Language Switcher -->
+                <button onclick="toggleLanguage()" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-navy-700 text-diamond-300 hover:bg-navy-600 border border-diamond-500/30 transition">
+                    <i class="fa-solid fa-globe ml-1"></i> <span id="txt-lang">English</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- Banner / Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="diamond-card p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-400" id="stat-total-blocks-lbl">إجمالي الكتل (Blocks)</p>
+                    <h3 class="text-2xl font-bold text-white font-mono" id="stat-total-blocks">1</h3>
+                </div>
+                <i class="fa-solid fa-cubes text-diamond-500 text-3xl opacity-80"></i>
+            </div>
+            <div class="diamond-card p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-400" id="stat-registered-diamonds-lbl">الماسات المسجلة</p>
+                    <h3 class="text-2xl font-bold text-gold-400 font-mono" id="stat-registered-diamonds">0</h3>
+                </div>
+                <i class="fa-solid fa-gem text-gold-500 text-3xl opacity-80"></i>
+            </div>
+            <div class="diamond-card p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-400" id="stat-transactions-lbl">إجمالي الانتقالات</p>
+                    <h3 class="text-2xl font-bold text-emerald-400 font-mono" id="stat-transactions">0</h3>
+                </div>
+                <i class="fa-solid fa-right-left text-emerald-400 text-3xl opacity-80"></i>
+            </div>
+            <div class="diamond-card p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-400" id="stat-status-lbl">حالة الشبكة</p>
+                    <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        <span id="stat-status-val">نشطة (Mainnet)</span>
+                    </h3>
+                </div>
+                <i class="fa-solid fa-network-wired text-blue-400 text-3xl opacity-80"></i>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-navy-700 mb-8 overflow-x-auto">
+            <button onclick="switchTab('register')" id="tab-register" class="py-3 px-6 text-sm font-semibold border-b-2 border-gold-500 text-gold-400 flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-plus-circle"></i> <span id="lbl-tab-register">تسجيل ماسة جديدة</span>
+            </button>
+            <button onclick="switchTab('verify')" id="tab-verify" class="py-3 px-6 text-sm font-semibold text-gray-400 hover:text-white border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-qrcode"></i> <span id="lbl-tab-verify">التحقق وسجل المعاملات</span>
+            </button>
+            <button onclick="switchTab('transfer')" id="tab-transfer" class="py-3 px-6 text-sm font-semibold text-gray-400 hover:text-white border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-handshake"></i> <span id="lbl-tab-transfer">نقل الملكية وإعادة البيع</span>
+            </button>
+            <button onclick="switchTab('explorer')" id="tab-explorer" class="py-3 px-6 text-sm font-semibold text-gray-400 hover:text-white border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-cube"></i> <span id="lbl-tab-explorer">مستكشف البلوكتشين (Explorer)</span>
+            </button>
+        </div>
+
+        <!-- SECTION 1: REGISTER DIAMOND -->
+        <section id="view-register" class="space-y-6">
+            <div class="diamond-card p-6 rounded-2xl">
+                <h2 class="text-xl font-bold gold-gradient-text mb-4" id="txt-reg-title">إضافة ماسة جديدة للسلسلة (Genesis Minting)</h2>
+                <form id="register-form" onsubmit="registerDiamond(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-diamond-id">معرف الماسة (ID / Serial)</label>
+                        <input type="text" id="reg-id" required class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-gold-500 outline-none" placeholder="مثال: DIA-90823">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-owner">المالك الأول (سجل المصنع / المالك)</label>
+                        <input type="text" id="reg-owner" required class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-gold-500 outline-none" placeholder="اسم الشركة أو المالك الأول">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-carat">الوزن بالقيراط (Carat Weight)</label>
+                        <input type="number" step="0.01" id="reg-carat" required class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-gold-500 outline-none" placeholder="1.50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-cut">نوع القَطع (Cut)</label>
+                        <select id="reg-cut" class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-gold-500 outline-none">
+                            <option value="Round Brilliant">دائري براق (Round Brilliant)</option>
+                            <option value="Princess">برنسيس (Princess)</option>
+                            <option value="Emerald">زمردي (Emerald)</option>
+                            <option value="Oval">بيضاوي (Oval)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-color">درجة اللون (Color Grade)</label>
+                        <select id="reg-color" class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-gold-500 outline-none">
+                            <option value="D (Colorless)">D - عديم اللون تماماً</option>
+                            <option value="E (Colorless)">E - عديم اللون</option>
+                            <option value="F (Colorless)">F - عديم اللون ممتاز</option>
+                            <option value="G (Near Colorless)">G - قريب من عديم اللون</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-clarity">درجة النقاء (Clarity Grade)</label>
+                        <select id="reg-clarity" class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-gold-500 outline-none">
+                            <option value="FL (Flawless)">FL - خالي من العيوب تماماً</option>
+                            <option value="IF (Internally Flawless)">IF - خالي من العيوب داخلياً</option>
+                            <option value="VVS1 (Very Very Slightly Included)">VVS1 - شوائب نادرة جداً</option>
+                            <option value="VS1 (Very Slightly Included)">VS1 - شوائب ضئيلة</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-origin">المصدر/المنجم الأصلي</label>
+                        <input type="text" id="reg-origin" required class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-gold-500 outline-none" placeholder="مناجم بوتسوانا / De Beers">
+                    </div>
+                    <div class="md:col-span-2 mt-2">
+                        <button type="submit" class="w-full py-3 bg-gradient-to-r from-gold-600 to-gold-500 text-navy-900 font-bold rounded-lg hover:brightness-110 transition flex justify-center items-center gap-2">
+                            <i class="fa-solid fa-cube"></i> <span id="btn-submit-reg">تعدين الكتلة وتسجيل الماسة</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- SECTION 2: VERIFY & CERTIFICATE -->
+        <section id="view-verify" class="space-y-6 hidden">
+            <!-- Search Control -->
+            <div class="diamond-card p-6 rounded-2xl">
+                <h2 class="text-xl font-bold text-diamond-300 mb-4" id="txt-verify-title">البحث والتحقق من الماسة بواسطة ID أو QR Code</h2>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="search-id" class="flex-grow bg-navy-800 border border-navy-600 rounded-lg p-3 text-sm text-white focus:border-diamond-500 outline-none font-mono" placeholder="أدخل معرف الماسة DIA-XXXXX">
+                    <button onclick="performSearch()" class="px-6 py-3 bg-diamond-500 hover:bg-diamond-700 text-navy-900 font-bold rounded-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass"></i> <span id="btn-search-lbl">تحقق الآن</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Verification Result Container -->
+            <div id="verification-result" class="hidden space-y-6">
+                <!-- Digital Printable Certificate -->
+                <div id="printable-certificate" class="diamond-card p-8 rounded-2xl border-2 border-gold-600/50 relative overflow-hidden bg-navy-900">
+                    <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-gold-400 via-diamond-500 to-gold-600"></div>
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-center border-b border-gold-600/30 pb-6 mb-6 gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 text-gold-400 mb-1">
+                                <i class="fa-solid fa-gem text-2xl"></i>
+                                <span class="font-bold text-lg tracking-wider" id="cert-header-title">شهادة ملكية رقمية موثوقة</span>
+                            </div>
+                            <p class="text-xs text-gray-400" id="cert-header-sub">مؤمنة بالكامل بواسطة تقنية البلوكتشين (SHA-256)</p>
+                        </div>
+                        <div class="text-center md:text-left">
+                            <span class="text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/40 inline-block mb-1 font-mono" id="cert-verified-badge">✓ أصلي وموثق</span>
+                            <p class="text-xs text-gray-400 font-mono" id="cert-date-lbl">تاريخ الإصدار: <span id="cert-date">--</span></p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Details -->
+                        <div class="md:col-span-2 space-y-3">
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p class="text-xs text-gray-400" id="cert-lbl-id">معرف الماسة الرقمي</p>
+                                    <p class="font-bold text-gold-400 font-mono text-lg" id="cert-id">--</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400" id="cert-lbl-owner">المالك الحالي المسجل</p>
+                                    <p class="font-bold text-white text-lg" id="cert-owner">--</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400" id="cert-lbl-carat">الوزن</p>
+                                    <p class="font-semibold text-gray-200" id="cert-carat">-- قيراط</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400" id="cert-lbl-cut">نوع القَطع</p>
+                                    <p class="font-semibold text-gray-200" id="cert-cut">--</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400" id="cert-lbl-color">اللون</p>
+                                    <p class="font-semibold text-gray-200" id="cert-color">--</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400" id="cert-lbl-clarity">النقاء</p>
+                                    <p class="font-semibold text-gray-200" id="cert-clarity">--</p>
+                                </div>
+                            </div>
+                            <div class="pt-2">
+                                <p class="text-xs text-gray-400" id="cert-lbl-hash">توقيع الكتلة (Block Hash)</p>
+                                <p class="font-mono text-xs text-diamond-300 break-all bg-navy-800 p-2 rounded mt-1" id="cert-hash">--</p>
+                            </div>
+                        </div>
+
+                        <!-- QR Code Container -->
+                        <div class="flex flex-col items-center justify-center p-4 bg-navy-800/80 rounded-xl border border-gold-600/20">
+                            <div id="qrcode-box" class="bg-white p-3 rounded-lg mb-2"></div>
+                            <p class="text-[10px] text-gray-400 text-center" id="cert-qr-desc">امسح الكود للتحقق المباشر عبر الويب</p>
+                        </div>
+                    </div>
+
+                    <!-- Print Button -->
+                    <div class="mt-6 pt-4 border-t border-navy-700 flex justify-end no-print">
+                        <button onclick="window.print()" class="px-4 py-2 bg-gold-600 hover:bg-gold-700 text-navy-900 font-bold text-xs rounded-lg transition flex items-center gap-2">
+                            <i class="fa-solid fa-print"></i> <span id="btn-print-cert">طباعة الشهادة الرسمية</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Transaction History Timeline -->
+                <div class="diamond-card p-6 rounded-2xl">
+                    <h3 class="text-lg font-bold text-gold-400 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-timeline"></i> <span id="txt-history-title">سجل الانتقالات الكامل على البلوكتشين</span>
+                    </h3>
+                    <div class="space-y-4" id="history-timeline">
+                        <!-- Dynamic History Timeline Cards -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: TRANSFER & RESALE -->
+        <section id="view-transfer" class="space-y-6 hidden">
+            <div class="diamond-card p-6 rounded-2xl">
+                <h2 class="text-xl font-bold text-emerald-400 mb-4" id="txt-transfer-title">إعادة بيع / نقل ملكية ماسة</h2>
+                <form id="transfer-form" onsubmit="transferOwnership(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-transfer-id">اختر الماسة المراد نقل ملكيتها</label>
+                        <select id="trans-id" required class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 outline-none">
+                            <option value="">-- اختر من الماسات المسجلة --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-transfer-new-owner">اسم المشتري الجديد (المالك الجديد)</label>
+                        <input type="text" id="trans-new-owner" required class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 outline-none" placeholder="اسم الشخص أو المؤسسة الجديدة">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-transfer-price">سعر المعاملة (دولار أمريكي)</label>
+                        <input type="number" id="trans-price" required class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 outline-none" placeholder="15000">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1" id="lbl-transfer-location">مكان المعاملة / الفرع</label>
+                        <input type="text" id="trans-location" required class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 outline-none" placeholder="دبي / نيويورك">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-navy-900 font-bold rounded-lg transition flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-file-contract"></i> <span id="btn-submit-transfer">تأكيد نقل الملكية وإضافة كتلة جديدة</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- SECTION 4: BLOCKCHAIN EXPLORER -->
+        <section id="view-explorer" class="space-y-6 hidden">
+            <div class="diamond-card p-6 rounded-2xl">
+                <h2 class="text-xl font-bold text-diamond-300 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-cubes"></i> <span id="txt-explorer-title">مستكشف الكتل الكامل (Blockchain Ledger)</span>
+                </h2>
+                <div class="space-y-4" id="blockchain-blocks">
+                    <!-- Dynamic Blocks Rendering -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom Domain Configuration Modal -->
+    <div id="domain-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="diamond-card p-6 rounded-2xl max-w-md w-full space-y-4">
+            <h3 class="text-lg font-bold text-gold-400" id="modal-domain-title">إعداد رابط الموقع للنشر</h3>
+            <p class="text-xs text-gray-300" id="modal-domain-desc">
+                أدخل رابط موقعك المنشور (مثال على GitHub Pages أو Netlify) ليتم ربطه برمز الـ QR code لتوجيه العملاء تلقائياً.
+            </p>
+            <input type="url" id="domain-url-input" class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2.5 text-sm text-white focus:border-gold-500 outline-none font-mono" placeholder="https://yourname.github.io/diamond-app">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeDomainModal()" class="px-4 py-2 bg-navy-700 hover:bg-navy-600 text-gray-300 rounded-lg text-xs" id="modal-btn-cancel">إلغاء</button>
+                <button onclick="saveCustomDomain()" class="px-4 py-2 bg-gold-600 hover:bg-gold-700 text-navy-900 font-bold rounded-lg text-xs" id="modal-btn-save">حفظ الرابط</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-navy-800 bg-navy-900 py-6 text-center text-xs text-gray-500">
+        <p id="txt-footer">محاكي البلوكتشين لتتبع ملكية وتداول الألماس © 2026 - مؤمن ومحاكى بنظام TPoS</p>
+    </footer>
+
+    <!-- App Logic Script -->
+    <script>
+        // Default Language
+        let currentLang = 'ar';
+        let customDomain = localStorage.getItem('diamond_app_domain') || window.location.origin + window.location.pathname;
+
+        // Translation Dictionary
+        const i18n = {
+            ar: {
+                appTitle: 'محاكي بلوكتشين الألماس',
+                appSubtitle: 'نظام إثبات الملكية وتتبع المعاملات الرقمية',
+                btnDomain: 'رابط الموقع للنشر',
+                totalBlocks: 'إجمالي الكتل (Blocks)',
+                registeredDiamonds: 'الماسات المسجلة',
+                transactions: 'إجمالي الانتقالات',
+                networkStatus: 'حالة الشبكة',
+                activeStatus: 'نشطة (Mainnet)',
+                tabRegister: 'تسجيل ماسة جديدة',
+                tabVerify: 'التحقق وسجل المعاملات',
+                tabTransfer: 'نقل الملكية وإعادة البيع',
+                tabExplorer: 'مستكشف البلوكتشين',
+                regTitle: 'إضافة ماسة جديدة للسلسلة (Genesis Minting)',
+                lblDiamondId: 'معرف الماسة (ID / Serial)',
+                lblOwner: 'المالك الأول (سجل المصنع / المالك)',
+                lblCarat: 'الوزن بالقيراط (Carat)',
+                lblCut: 'نوع القَطع (Cut)',
+                lblColor: 'درجة اللون (Color)',
+                lblClarity: 'درجة النقاء (Clarity)',
+                lblOrigin: 'المصدر / المنجم الأصلي',
+                btnSubmitReg: 'تعدين الكتلة وتسجيل الماسة',
+                verifyTitle: 'البحث والتحقق من الماسة بواسطة ID أو QR Code',
+                btnSearch: 'تحقق الآن',
+                certHeaderTitle: 'شهادة ملكية رقمية موثوقة',
+                certHeaderSub: 'مؤمنة بالكامل بواسطة تقنية البلوكتشين (SHA-256)',
+                certVerifiedBadge: '✓ أصلي وموثق',
+                certDateLbl: 'تاريخ الإصدار: ',
+                certLblId: 'معرف الماسة الرقمي',
+                certLblOwner: 'المالك الحالي المسجل',
+                certLblCarat: 'الوزن',
+                certLblCut: 'نوع القَطع',
+                certLblColor: 'اللون',
+                certLblClarity: 'النقاء',
+                certLblHash: 'توقيع الكتلة (Block Hash)',
+                certQrDesc: 'امسح الكود للتحقق المباشر عبر الويب',
+                btnPrintCert: 'طباعة الشهادة الرسمية',
+                historyTitle: 'سجل الانتقالات الكامل على البلوكتشين',
+                transferTitle: 'إعادة بيع / نقل ملكية ماسة',
+                lblTransferId: 'اختر الماسة المراد نقل ملكيتها',
+                lblTransferNewOwner: 'اسم المشتري الجديد (المالك الجديد)',
+                lblTransferPrice: 'سعر المعاملة (دولار أمريكي)',
+                lblTransferLocation: 'مكان المعاملة / الفرع',
+                btnSubmitTransfer: 'تأكيد نقل الملكية وإضافة كتلة جديدة',
+                explorerTitle: 'مستكشف الكتل الكامل (Blockchain Ledger)',
+                footer: 'محاكي البلوكتشين لتتبع ملكية وتداول الألماس © 2026 - مؤمن ومحاكى بنظام TPoS'
+            },
+            en: {
+                appTitle: 'Diamond Blockchain Simulator',
+                appSubtitle: 'Digital Ownership Proof & Transaction Ledger',
+                btnDomain: 'Publishing Domain',
+                totalBlocks: 'Total Blocks',
+                registeredDiamonds: 'Registered Diamonds',
+                transactions: 'Total Transfers',
+                networkStatus: 'Network Status',
+                activeStatus: 'Active (Mainnet)',
+                tabRegister: 'Register New Diamond',
+                tabVerify: 'Verification & Ledger',
+                tabTransfer: 'Ownership Transfer',
+                tabExplorer: 'Blockchain Explorer',
+                regTitle: 'Genesis Minting: Register Diamond',
+                lblDiamondId: 'Diamond ID / Serial',
+                lblOwner: 'Initial Owner / Mint',
+                lblCarat: 'Carat Weight',
+                lblCut: 'Cut Type',
+                lblColor: 'Color Grade',
+                lblClarity: 'Clarity Grade',
+                lblOrigin: 'Origin / Mine Location',
+                btnSubmitReg: 'Mine Block & Register',
+                verifyTitle: 'Verify Diamond via ID or QR Code',
+                btnSearch: 'Verify Now',
+                certHeaderTitle: 'Certified Digital Ownership',
+                certHeaderSub: 'Secured Cryptographically via SHA-256 Blockchain',
+                certVerifiedBadge: '✓ Verified & Authentic',
+                certDateLbl: 'Issue Date: ',
+                certLblId: 'Digital Diamond ID',
+                certLblOwner: 'Current Owner',
+                certLblCarat: 'Carat Weight',
+                certLblCut: 'Cut',
+                certLblColor: 'Color Grade',
+                certLblClarity: 'Clarity Grade',
+                certLblHash: 'Block SHA-256 Hash',
+                certQrDesc: 'Scan QR Code for Live Web Verification',
+                btnPrintCert: 'Print Official Certificate',
+                historyTitle: 'Complete Transfer History on Ledger',
+                transferTitle: 'Ownership Transfer & Resale',
+                lblTransferId: 'Select Diamond ID',
+                lblTransferNewOwner: 'New Owner Name',
+                lblTransferPrice: 'Transaction Price (USD)',
+                lblTransferLocation: 'Location / Branch',
+                btnSubmitTransfer: 'Confirm Transfer & Mine Block',
+                explorerTitle: 'Blockchain Ledger Explorer',
+                footer: 'Diamond Ownership Blockchain Simulator © 2026 - Secured via TPoS'
+            }
+        };
+
+        // Blockchain Data Structure
+        let blockchain = JSON.parse(localStorage.getItem('diamond_blockchain')) || [
+            {
+                index: 0,
+                timestamp: '2026-01-01 00:00:00',
+                type: 'GENESIS',
+                diamondId: 'GENESIS-BLOCK',
+                data: 'Genesis Block - Diamond Blockchain Established',
+                previousHash: '0000000000000000000000000000000000000000000000000000000000000000',
+                hash: '0000a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abc',
+                nonce: 420
+            }
+        ];
+
+        // Pseudo SHA-256 Hash Function
+        function calculateHash(index, previousHash, timestamp, data, nonce) {
+            let str = index + previousHash + timestamp + JSON.stringify(data) + nonce;
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                let char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return '0000' + Math.abs(hash).toString(16).padStart(60, 'e3f1a9b8c7d6e5f4');
+        }
+
+        function saveBlockchain() {
+            localStorage.setItem('diamond_blockchain', JSON.stringify(blockchain));
+            updateStats();
+            populateTransferDropdown();
+            renderExplorer();
+        }
+
+        // Language Toggle
+        function toggleLanguage() {
+            currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+            document.documentElement.lang = currentLang;
+            document.getElementById('txt-lang').innerText = currentLang === 'ar' ? 'English' : 'عربي';
+            applyTranslations();
+        }
+
+        function applyTranslations() {
+            const t = i18n[currentLang];
+            document.getElementById('txt-app-title').innerText = t.appTitle;
+            document.getElementById('txt-app-subtitle').innerText = t.appSubtitle;
+            document.getElementById('txt-btn-domain').innerText = t.btnDomain;
+            document.getElementById('stat-total-blocks-lbl').innerText = t.totalBlocks;
+            document.getElementById('stat-registered-diamonds-lbl').innerText = t.registeredDiamonds;
+            document.getElementById('stat-transactions-lbl').innerText = t.transactions;
+            document.getElementById('stat-status-lbl').innerText = t.networkStatus;
+            document.getElementById('stat-status-val').innerText = t.activeStatus;
+
+            document.getElementById('lbl-tab-register').innerText = t.tabRegister;
+            document.getElementById('lbl-tab-verify').innerText = t.tabVerify;
+            document.getElementById('lbl-tab-transfer').innerText = t.tabTransfer;
+            document.getElementById('lbl-tab-explorer').innerText = t.tabExplorer;
+
+            document.getElementById('txt-reg-title').innerText = t.regTitle;
+            document.getElementById('lbl-diamond-id').innerText = t.lblDiamondId;
+            document.getElementById('lbl-owner').innerText = t.lblOwner;
+            document.getElementById('lbl-carat').innerText = t.lblCarat;
+            document.getElementById('lbl-cut').innerText = t.lblCut;
+            document.getElementById('lbl-color').innerText = t.lblColor;
+            document.getElementById('lbl-clarity').innerText = t.lblClarity;
+            document.getElementById('lbl-origin').innerText = t.lblOrigin;
+            document.getElementById('btn-submit-reg').innerText = t.btnSubmitReg;
+
+            document.getElementById('txt-verify-title').innerText = t.verifyTitle;
+            document.getElementById('btn-search-lbl').innerText = t.btnSearch;
+
+            document.getElementById('cert-header-title').innerText = t.certHeaderTitle;
+            document.getElementById('cert-header-sub').innerText = t.certHeaderSub;
+            document.getElementById('cert-verified-badge').innerText = t.certVerifiedBadge;
+            document.getElementById('cert-lbl-id').innerText = t.certLblId;
+            document.getElementById('cert-lbl-owner').innerText = t.certLblOwner;
+            document.getElementById('cert-lbl-carat').innerText = t.certLblCarat;
+            document.getElementById('cert-lbl-cut').innerText = t.certLblCut;
+            document.getElementById('cert-lbl-color').innerText = t.certLblColor;
+            document.getElementById('cert-lbl-clarity').innerText = t.certLblClarity;
+            document.getElementById('cert-lbl-hash').innerText = t.certLblHash;
+            document.getElementById('cert-qr-desc').innerText = t.certQrDesc;
+            document.getElementById('btn-print-cert').innerText = t.btnPrintCert;
+
+            document.getElementById('txt-history-title').innerText = t.historyTitle;
+            document.getElementById('txt-transfer-title').innerText = t.transferTitle;
+            document.getElementById('lbl-transfer-id').innerText = t.lblTransferId;
+            document.getElementById('lbl-transfer-new-owner').innerText = t.lblTransferNewOwner;
+            document.getElementById('lbl-transfer-price').innerText = t.lblTransferPrice;
+            document.getElementById('lbl-transfer-location').innerText = t.lblTransferLocation;
+            document.getElementById('btn-submit-transfer').innerText = t.btnSubmitTransfer;
+
+            document.getElementById('txt-explorer-title').innerText = t.explorerTitle;
+            document.getElementById('txt-footer').innerText = t.footer;
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            ['register', 'verify', 'transfer', 'explorer'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).className = "py-3 px-6 text-sm font-semibold text-gray-400 hover:text-white border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap";
+            });
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).className = "py-3 px-6 text-sm font-semibold border-b-2 border-gold-500 text-gold-400 flex items-center gap-2 whitespace-nowrap";
+        }
+
+        // Update Dashboard Stats
+        function updateStats() {
+            document.getElementById('stat-total-blocks').innerText = blockchain.length;
+            const registered = new Set(blockchain.filter(b => b.type === 'MINT').map(b => b.diamondId)).size;
+            document.getElementById('stat-registered-diamonds').innerText = registered;
+            const transfers = blockchain.filter(b => b.type === 'TRANSFER').length;
+            document.getElementById('stat-transactions').innerText = transfers;
+        }
+
+        // Populate Dropdown for Transfer
+        function populateTransferDropdown() {
+            const select = document.getElementById('trans-id');
+            select.innerHTML = '<option value="">-- اختر من الماسات المسجلة --</option>';
+            const registered = [...new Set(blockchain.filter(b => b.type === 'MINT').map(b => b.diamondId))];
+            registered.forEach(id => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.innerText = id;
+                select.appendChild(opt);
+            });
+        }
+
+        // Register New Diamond (Mint Block)
+        function registerDiamond(e) {
+            e.preventDefault();
+            const id = document.getElementById('reg-id').value.trim();
+            const owner = document.getElementById('reg-owner').value.trim();
+            const carat = document.getElementById('reg-carat').value;
+            const cut = document.getElementById('reg-cut').value;
+            const color = document.getElementById('reg-color').value;
+            const clarity = document.getElementById('reg-clarity').value;
+            const origin = document.getElementById('reg-origin').value;
+
+            // Check duplicate
+            if (blockchain.some(b => b.diamondId === id && b.type === 'MINT')) {
+                alert(currentLang === 'ar' ? 'معرف الماسة هذا مسجل بالكامل سابقاً!' : 'Diamond ID already registered!');
+                return;
+            }
+
+            const prevBlock = blockchain[blockchain.length - 1];
+            const timestamp = new Date().toLocaleString();
+            const blockData = { id, owner, carat, cut, color, clarity, origin, mintDate: timestamp };
+            const hash = calculateHash(blockchain.length, prevBlock.hash, timestamp, blockData, 101);
+
+            const newBlock = {
+                index: blockchain.length,
+                timestamp,
+                type: 'MINT',
+                diamondId: id,
+                data: blockData,
+                previousHash: prevBlock.hash,
+                hash,
+                nonce: 101
+            };
+
+            blockchain.push(newBlock);
+            saveBlockchain();
+            alert(currentLang === 'ar' ? 'تم تسجيل وتعدين الكتلة بنجاح!' : 'Diamond successfully minted!');
+            document.getElementById('register-form').reset();
+            
+            // Auto view certificate
+            document.getElementById('search-id').value = id;
+            switchTab('verify');
+            performSearch();
+        }
+
+        // Transfer Ownership
+        function transferOwnership(e) {
+            e.preventDefault();
+            const id = document.getElementById('trans-id').value;
+            const newOwner = document.getElementById('trans-new-owner').value.trim();
+            const price = document.getElementById('trans-price').value;
+            const location = document.getElementById('trans-location').value;
+
+            const history = blockchain.filter(b => b.diamondId === id);
+            if (!history.length) return;
+
+            const currentOwner = history[history.length - 1].data.owner || history[history.length - 1].data.newOwner;
+
+            const prevBlock = blockchain[blockchain.length - 1];
+            const timestamp = new Date().toLocaleString();
+            const blockData = { id, previousOwner: currentOwner, newOwner, price, location, transferDate: timestamp };
+            const hash = calculateHash(blockchain.length, prevBlock.hash, timestamp, blockData, 202);
+
+            const newBlock = {
+                index: blockchain.length,
+                timestamp,
+                type: 'TRANSFER',
+                diamondId: id,
+                data: blockData,
+                previousHash: prevBlock.hash,
+                hash,
+                nonce: 202
+            };
+
+            blockchain.push(newBlock);
+            saveBlockchain();
+            alert(currentLang === 'ar' ? 'تم نقل الملكية وتسجيل الكتلة بنجاح!' : 'Ownership transferred successfully!');
+            document.getElementById('transfer-form').reset();
+
+            document.getElementById('search-id').value = id;
+            switchTab('verify');
+            performSearch();
+        }
+
+        // Perform Search and Render Certificate & History
+        function performSearch() {
+            const query = document.getElementById('search-id').value.trim();
+            if (!query) return;
+
+            const blocks = blockchain.filter(b => b.diamondId === query);
+            const resContainer = document.getElementById('verification-result');
+
+            if (blocks.length === 0) {
+                alert(currentLang === 'ar' ? 'لم يتم العثور على ماسة بهذا المعرف!' : 'No Diamond found with this ID!');
+                resContainer.classList.add('hidden');
+                return;
+            }
+
+            resContainer.classList.remove('hidden');
+
+            const genesisMint = blocks.find(b => b.type === 'MINT');
+            const latestBlock = blocks[blocks.length - 1];
+
+            const currentOwner = latestBlock.type === 'MINT' ? latestBlock.data.owner : latestBlock.data.newOwner;
+
+            // Render Certificate
+            document.getElementById('cert-id').innerText = genesisMint.diamondId;
+            document.getElementById('cert-owner').innerText = currentOwner;
+            document.getElementById('cert-carat').innerText = genesisMint.data.carat + ' Carat';
+            document.getElementById('cert-cut').innerText = genesisMint.data.cut;
+            document.getElementById('cert-color').innerText = genesisMint.data.color;
+            document.getElementById('cert-clarity').innerText = genesisMint.data.clarity;
+            document.getElementById('cert-date').innerText = genesisMint.timestamp;
+            document.getElementById('cert-hash').innerText = latestBlock.hash;
+
+            // Generate QR Code with URL containing Diamond ID
+            const qrContainer = document.getElementById('qrcode-box');
+            qrContainer.innerHTML = '';
+            
+            // Build Deep-link Verification URL
+            let baseUrl = customDomain.split('?')[0];
+            const verifyUrl = `${baseUrl}?diamondId=${encodeURIComponent(query)}`;
+
+            new QRCode(qrContainer, {
+                text: verifyUrl,
+                width: 110,
+                height: 110,
+                colorDark: "#070b19",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Render Timeline History
+            const timeline = document.getElementById('history-timeline');
+            timeline.innerHTML = '';
+
+            blocks.forEach((b, idx) => {
+                const card = document.createElement('div');
+                card.className = "p-4 bg-navy-800/60 rounded-xl border border-gold-600/20 flex flex-col md:flex-row justify-between gap-2";
+                if (b.type === 'MINT') {
+                    card.innerHTML = `
+                        <div>
+                            <span class="text-xs font-bold text-gold-400 bg-gold-600/20 px-2 py-0.5 rounded">Block #${b.index} - GENESIS MINT</span>
+                            <p class="text-sm font-semibold text-white mt-1">المالك الأصلي: ${b.data.owner}</p>
+                            <p class="text-xs text-gray-400">المنجم / المصدر: ${b.data.origin}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs font-mono text-diamond-300">${b.timestamp}</p>
+                            <p class="text-[10px] font-mono text-gray-500 break-all">${b.hash.substring(0,25)}...</p>
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div>
+                            <span class="text-xs font-bold text-emerald-400 bg-emerald-600/20 px-2 py-0.5 rounded">Block #${b.index} - RESALE / TRANSFER</span>
+                            <p class="text-sm font-semibold text-white mt-1">من: ${b.data.previousOwner} ➔ إلى: ${b.data.newOwner}</p>
+                            <p class="text-xs text-gray-400">السعر: $${Number(b.data.price).toLocaleString()} | الموقع: ${b.data.location}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs font-mono text-diamond-300">${b.timestamp}</p>
+                            <p class="text-[10px] font-mono text-gray-500 break-all">${b.hash.substring(0,25)}...</p>
+                        </div>
+                    `;
+                }
+                timeline.appendChild(card);
+            });
+        }
+
+        // Render Explorer Blocks
+        function renderExplorer() {
+            const container = document.getElementById('blockchain-blocks');
+            container.innerHTML = '';
+
+            [...blockchain].reverse().forEach(b => {
+                const item = document.createElement('div');
+                item.className = "p-4 bg-navy-800 rounded-xl border border-navy-600 font-mono text-xs space-y-2";
+                item.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-navy-700 pb-2">
+                        <span class="text-gold-400 font-bold">BLOCK #${b.index} [${b.type}]</span>
+                        <span class="text-gray-400">${b.timestamp}</span>
+                    </div>
+                    <p class="text-gray-300"><strong>Diamond ID:</strong> ${b.diamondId}</p>
+                    <p class="text-gray-400 break-all"><strong>Prev Hash:</strong> ${b.previousHash}</p>
+                    <p class="text-diamond-300 break-all"><strong>Hash:</strong> ${b.hash}</p>
+                    <p class="text-emerald-400"><strong>Nonce:</strong> ${b.nonce}</p>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Domain Modal Operations
+        function openDomainModal() {
+            document.getElementById('domain-url-input').value = customDomain;
+            document.getElementById('domain-modal').classList.remove('hidden');
+        }
+
+        function closeDomainModal() {
+            document.getElementById('domain-modal').classList.add('hidden');
+        }
+
+        function saveCustomDomain() {
+            const input = document.getElementById('domain-url-input').value.trim();
+            if (input) {
+                customDomain = input;
+                localStorage.setItem('diamond_app_domain', customDomain);
+                alert(currentLang === 'ar' ? 'تم حفظ رابط الموقع بنجاح!' : 'Domain URL saved successfully!');
+            }
+            closeDomainModal();
+        }
+
+        // Deep Link Check on Load (via URL Params)
+        window.addEventListener('DOMContentLoaded', () => {
+            updateStats();
+            populateTransferDropdown();
+            renderExplorer();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const diamondId = urlParams.get('diamondId');
+            if (diamondId) {
+                switchTab('verify');
+                document.getElementById('search-id').value = diamondId;
+                performSearch();
+            }
+        });
+    </script>
+</body>
+</html>
